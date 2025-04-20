@@ -20,7 +20,7 @@ This repository implements two core database‐management algorithms in Java:
 
 1. **Clone the repository**  
    ```
-   git clone <repository-url>
+   git clone git@github.com:suryacherukuri999/database-algorithms.git
    cd database-algorithms
    ```
 
