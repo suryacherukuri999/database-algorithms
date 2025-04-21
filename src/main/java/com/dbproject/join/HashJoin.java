@@ -30,49 +30,7 @@ public class HashJoin {
         List<JoinTuple> out = new ArrayList<>();
         for (int i = 0; i < P; i++) {
             if (!rParts.get(i).isEmpty() && !sParts.get(i).isEmpty()) {
-                out.addAll(joinPartitionPair(rParts.get(i), sParts.get(i)));
-            }
-        }
-        return out;
-    }
-
-    // One‑pass hash join when one relation fits in memory 
-    public List<JoinTuple> performOnePassJoin(List<Integer> rBlocks,
-                                              List<Integer> sBlocks) {
-        disk.resetIoCount();
-
-        // choose smaller relation to build hash
-        boolean buildR = rBlocks.size() <= sBlocks.size();
-        List<Integer> build = buildR ? rBlocks : sBlocks;
-        List<Integer> probe = buildR ? sBlocks : rBlocks;
-
-        // build in‑memory hash table
-        Map<Integer,List<Tuple>> ht = new HashMap<>();
-        memory.clearBlocks();
-        for (int bIdx : build) {
-            DiskBlock db = disk.readBlock(bIdx);
-            memory.loadBlock(0, db);
-            for (Tuple t : memory.getBlock(0).getTuples()) {
-                ht.computeIfAbsent(t.getKeyB(), k -> new ArrayList<>()).add(t);
-            }
-        }
-
-        // probe
-        List<JoinTuple> out = new ArrayList<>();
-        for (int bIdx : probe) {
-            DiskBlock db = disk.readBlock(bIdx);
-            memory.loadBlock(0, db);
-            for (Tuple pt : memory.getBlock(0).getTuples()) {
-                List<Tuple> matches = ht.get(pt.getKeyB());
-                if (matches != null) {
-                    for (Tuple bt : matches) {
-                        if (buildR) {
-                            out.add(new JoinTuple(bt.getOther(), bt.getKeyB(), pt.getOther()));
-                        } else {
-                            out.add(new JoinTuple(pt.getOther(), pt.getKeyB(), bt.getOther()));
-                        }
-                    }
-                }
+                out.addAll(performOnePassJoin(rParts.get(i), sParts.get(i)));
             }
         }
         return out;
@@ -110,7 +68,7 @@ public class HashJoin {
     }
 
     // Phase 2 in‐memory join of partition i 
-    private List<JoinTuple> joinPartitionPair(List<Integer> rPart,
+    private List<JoinTuple> performOnePassJoin(List<Integer> rPart,
                                               List<Integer> sPart) {
         // build R's hash table
         Map<Integer,List<Tuple>> ht = new HashMap<>();
